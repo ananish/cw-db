@@ -2,7 +2,6 @@ package edu.uob;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -16,7 +15,7 @@ public class DBServer {
 
     private static final char END_OF_TRANSMISSION = 4;
     private String storageFolderPath;
-    private final CommandHandler commandHandler;
+    private final ManageCommand manageCommand;
 
     public static void main(String args[]) throws IOException {
         DBServer server = new DBServer();
@@ -34,7 +33,7 @@ public class DBServer {
         } catch(IOException ioe) {
             System.out.println("Can't seem to create database storage folder " + storageFolderPath);
         }
-        commandHandler = new CommandHandler();
+        manageCommand = new ManageCommand();
     }
 
     /**
@@ -44,7 +43,7 @@ public class DBServer {
     * <p>This method handles all incoming DB commands and carries out the required actions.
     */
     public String handleCommand(String command) {
-        return commandHandler.executeCommand(command).trim();
+        return manageCommand.executeCommand(command).trim();
     }
 
     //  === Methods below handle networking aspects of the project - you will not need to change these ! ===

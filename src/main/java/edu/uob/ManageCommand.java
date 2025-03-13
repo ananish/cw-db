@@ -4,10 +4,10 @@ import java.io.File;
 import java.util.*;
 import java.util.regex.*;
 
-public class CommandHandler {
+public class ManageCommand {
     private Database currentDatabase;
 
-    public CommandHandler() {
+    public ManageCommand() {
         this.currentDatabase = null;
     }
 
@@ -55,6 +55,9 @@ public class CommandHandler {
     private String handleUse(List<String> tokens) {
         if (tokens.size() < 2) return "[ERROR] Missing database name";
         String dbName = tokens.get(1).toLowerCase();
+        if (!isValidIdentifier(dbName)) {
+            return "[ERROR] Invalid database name: " + dbName;
+        }
         File dbFolder = new File("databases/" + dbName);
 
         if (!dbFolder.exists() || !dbFolder.isDirectory()) {
@@ -71,6 +74,9 @@ public class CommandHandler {
         }
         if (tokens.get(1).equalsIgnoreCase("DATABASE")) {
             String dbName = tokens.get(2).toLowerCase();
+            if (!isValidIdentifier(dbName)) {
+                return "[ERROR] Invalid database name: " + dbName;
+            }
             File dbFolder = new File("databases/" + dbName);
             if (dbFolder.exists()) {
                 return "[ERROR] Database already exists";
@@ -85,7 +91,10 @@ public class CommandHandler {
                 return "[ERROR] No database selected";
             }
             String tableName = tokens.get(2).toLowerCase();
-            // If there is no '(' in the query, create the table with only the primary key column.
+            // iif there is no '('  in the query, create the table with only the primary key column
+            if (!isValidIdentifier(tableName)) {
+                return "[ERROR] Invalid table name: " + tableName;
+            }
             if (!query.contains("(")) {
                 List<String> columns = new ArrayList<>();
                 columns.add("id");
@@ -105,13 +114,16 @@ public class CommandHandler {
             List<String> columns = new ArrayList<>();
             Set<String> columnSet = new HashSet<>();
 
-            // Automatically add the primary key "id"
+            // add the primary key "id" automatically!!
             columns.add("id");
 
             for (String col : columnArray) {
                 String column = col.trim();
                 if (column.isEmpty() || columnSet.contains(column.toLowerCase())) {
                     return "[ERROR] Invalid or duplicate column name: " + column;
+                }
+                if (!isValidIdentifier(column)) {
+                    return "[ERROR] Invalid column name: " + column;
                 }
                 columnSet.add(column.toLowerCase());
                 columns.add(column);
@@ -150,7 +162,7 @@ public class CommandHandler {
         }
         String valuesPart = query.substring(start + 1, end).trim();
 
-        // Split values by commas while preserving strings with quotes.
+        // values are split by commas , and the quotes are preserved!
         List<String> values = new ArrayList<>();
         StringBuilder currentValue = new StringBuilder();
         boolean insideQuotes = false;
@@ -170,12 +182,18 @@ public class CommandHandler {
             values.add(currentValue.toString().trim());
         }
 
-        // Process values: if a value is a quoted string, remove the quotes.
+        // value processing: if a value is a quoted string, then the quotes are removed
         List<String> processedValues = new ArrayList<>();
         for (String val : values) {
             if (val.startsWith("'") && val.endsWith("'") && val.length() >= 2) {
                 processedValues.add(val.substring(1, val.length() - 1));
             } else {
+                if (!val.matches("[+-]?\\d+(\\.\\d+)?") &&
+                        !val.equalsIgnoreCase("TRUE") &&
+                        !val.equalsIgnoreCase("FALSE") &&
+                        !val.equalsIgnoreCase("NULL")) {
+                    return "[ERROR] Invalid value: " + val + ". String literals must be enclosed in single quotes.";
+                }
                 processedValues.add(val);
             }
         }
@@ -186,6 +204,12 @@ public class CommandHandler {
             return "[ERROR] Failed to insert record";
         }
     }
+
+    private boolean isValidIdentifier(String id) {
+        // Valid identifier: one or more letters and/or digits only.
+        return id.matches("[A-Za-z0-9]+");
+    }
+
 
 
     private String handleSelect(String query, List<String> tokens) {
@@ -256,12 +280,12 @@ public class CommandHandler {
             String conditionValue = matcher.group(3);
             results = table.selectRows(selectedColumns, conditionAttribute, comparator, conditionValue);
         }
-        // Prepend the [OK] tag to the results.
+        // adding [OK] tag to the results!
         return "[OK] \n" + String.join("\n", results);
     }
 
     private String handleDrop(List<String> tokens) {
-        // (Existing implementation remains unchanged.)
+
         if (tokens.size() < 3) {
             return "[ERROR] Invalid DROP command";
         }
@@ -298,7 +322,7 @@ public class CommandHandler {
     }
 
     private String handleDelete(String query, List<String> tokens) {
-        // (Existing implementation remains unchanged.)
+
         if (tokens.size() < 5 || !tokens.get(1).equalsIgnoreCase("FROM")) {
             return "[ERROR] Invalid DELETE syntax";
         }
@@ -344,7 +368,7 @@ public class CommandHandler {
     }
 
     private String handleAlter(String query, List<String> tokens) {
-        // (Existing implementation remains unchanged.)
+
         if (tokens.size() != 5) {
             return "[ERROR] Invalid ALTER syntax";
         }
@@ -387,10 +411,8 @@ public class CommandHandler {
                 return "[ERROR] Invalid alteration type: " + alterationType;
         }
     }
-
-    // New method to handle UPDATE command.
     private String handleUpdate(String query, List<String> tokens) {
-        // Expected syntax: UPDATE <TableName> SET <NameValueList> WHERE <Condition>
+        //BNF syntax=== UPDATE <TableName> SET <NameValueList> WHERE <Condition>
         int setIndex = query.toUpperCase().indexOf(" SET ");
         if (setIndex == -1) {
             return "[ERROR] UPDATE syntax error: missing SET";
@@ -407,7 +429,7 @@ public class CommandHandler {
         if (table == null) {
             return "[ERROR] Table not found";
         }
-        // Extract the update clause (between SET and WHERE).
+       // updateClause
         String updateClause = query.substring(setIndex + 5, whereIndex).trim();
         String[] pairs = updateClause.split(",");
         Map<String, String> updates = new HashMap<>();
@@ -427,7 +449,7 @@ public class CommandHandler {
             }
             updates.put(key, value);
         }
-        // Extract the condition clause (after WHERE).
+        // condition clause (after WHERE).
         String conditionClause = query.substring(whereIndex + 7).trim();
         if (conditionClause.startsWith("(") && conditionClause.endsWith(")")) {
             conditionClause = conditionClause.substring(1, conditionClause.length() - 1).trim();
@@ -448,7 +470,7 @@ public class CommandHandler {
         return "[OK] " + updateCount + " record(s) updated in " + tableName;
     }
 
-    // Helper method to recursively delete a directory.
+    // recursively delete a directory.
     private boolean deleteDirectory(File dir) {
         if (dir.isDirectory()) {
             File[] children = dir.listFiles();
@@ -463,15 +485,13 @@ public class CommandHandler {
         return dir.delete();
     }
 
-    // New method: Handle JOIN command.
-// Expected syntax: JOIN <TableName1> AND <TableName2> ON <AttributeName1> AND <AttributeName2>
+        //  BNF syntax = JOIN <TableName1> AND <TableName2> ON <AttributeName1> AND <AttributeName2>
     private String handleJoin(String query, List<String> tokens) {
-        // Expect exactly 8 tokens as per the BNF.
+        // exactly 8 tokens as per the BNF.
         if (tokens.size() != 8) {
             return "[ERROR] Invalid JOIN syntax";
         }
-        // tokens[0] is "JOIN", tokens[1] is table1, tokens[2] should be "AND", tokens[3] is table2,
-        // tokens[4] should be "ON", tokens[5] is the join attribute from table1, tokens[6] should be "AND", tokens[7] is the join attribute from table2.
+
         String table1Name = tokens.get(1).toLowerCase();
         String table2Name = tokens.get(3).toLowerCase();
         String attr1 = tokens.get(5);
@@ -484,10 +504,10 @@ public class CommandHandler {
         if (table1 == null || table2 == null) {
             return "[ERROR] One or both tables not found";
         }
-        // Retrieve column lists.
+        // retrieve column lists.
         List<String> table1Cols = table1.getColumns();
         List<String> table2Cols = table2.getColumns();
-        // Check that the join attributes exist.
+        // check that the join attributes exist.
         int index1 = table1Cols.indexOf(attr1);
         int index2 = table2Cols.indexOf(attr2);
         if (index1 == -1) {
@@ -496,10 +516,7 @@ public class CommandHandler {
         if (index2 == -1) {
             return "[ERROR] Column " + attr2 + " not found in table " + table2Name;
         }
-        // Build the joined header:
-        // - A new id column.
-        // - For table1, all non-id columns labeled as "table1.columnName"
-        // - For table2, all non-id columns labeled as "table2.columnName"
+        //  the joined header-
         List<String> joinHeader = new ArrayList<>();
         joinHeader.add("id");
         for (int i = 1; i < table1Cols.size(); i++) {
@@ -514,10 +531,9 @@ public class CommandHandler {
         // Retrieve rows from both tables.
         List<Row> rows1 = table1.getRows();
         List<Row> rows2 = table2.getRows();
-        // For an inner join, for each row in table1, iterate through table2 and
-        // if the join values (for the given attributes) match, create a joined row.
+
         for (Row r1 : rows1) {
-            // Get the join value from table1. (Note: values in each table do not include the original id.)
+
             String joinValue1 = attr1.equalsIgnoreCase("id")
                     ? String.valueOf(r1.getId())
                     : r1.getValues().get(index1 - 1);
@@ -528,11 +544,11 @@ public class CommandHandler {
                 if (joinValue1.equals(joinValue2)) {
                     List<String> joinedRow = new ArrayList<>();
                     joinedRow.add(String.valueOf(joinId++));
-                    // Append table1's non-id values.
+                    // appending non-id values.
                     for (int i = 1; i < table1Cols.size(); i++) {
                         joinedRow.add(r1.getValues().get(i - 1));
                     }
-                    // Append table2's non-id values.
+                    // appending 2nd table non-id values.
                     for (int i = 1; i < table2Cols.size(); i++) {
                         joinedRow.add(r2.getValues().get(i - 1));
                     }
@@ -540,7 +556,8 @@ public class CommandHandler {
                 }
             }
         }
-        return String.join("\n", joinResults);
+        return "[OK] \n" + String.join("\n", joinResults);
+
     }
 
 }

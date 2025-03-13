@@ -26,12 +26,10 @@ public class Table {
         this.rows = new ArrayList<>();
         loadTable();
     }
-
+    // select without condition
     public List<String> getColumns() {
         return new ArrayList<>(columns);
     }
-
-    // SELECT without a condition.
     public List<String> selectRows(List<String> selectedColumns) {
         List<String> results = new ArrayList<>();
         results.add(String.join("\t", selectedColumns));
@@ -63,11 +61,8 @@ public class Table {
         }
         for (Row row : rows) {
             String rowValue;
-            if (conditionAttribute.equalsIgnoreCase("id")) {
-                rowValue = String.valueOf(row.getId());
-            } else {
-                rowValue = row.getValues().get(attrIndex - 1);
-            }
+            rowValue = conditionAttribute.equalsIgnoreCase("id") ? String.valueOf(row.getId()) : row.getValues().get(attrIndex - 1);
+
             if (evaluateCondition(rowValue, comparator, conditionValue)) {
                 List<String> selectedValues = new ArrayList<>();
                 for (String col : selectedColumns) {
@@ -87,8 +82,6 @@ public class Table {
         return results;
     }
 
-    // New method: DELETE rows matching a condition.
-    // Returns the number of rows deleted, or -1 if the condition column is not found.
     public int deleteRows(String conditionAttribute, String comparator, String conditionValue) {
         int attrIndex = columns.indexOf(conditionAttribute);
         if (attrIndex == -1) {
@@ -99,26 +92,19 @@ public class Table {
         while (iterator.hasNext()) {
             Row row = iterator.next();
             String rowValue;
-            if (conditionAttribute.equalsIgnoreCase("id")) {
-                rowValue = String.valueOf(row.getId());
-            } else {
-                rowValue = row.getValues().get(attrIndex - 1);
-            }
+            rowValue = conditionAttribute.equalsIgnoreCase("id") ? String.valueOf(row.getId()) : row.getValues().get(attrIndex - 1);
+
             if (evaluateCondition(rowValue, comparator, conditionValue)) {
                 iterator.remove();
                 deleteCount++;
             }
         }
-        // Save changes and update nextId.
+        // save changes and update nextId
         saveTable();
         updateNextId();
         return deleteCount;
     }
-
-    // Updated evaluateCondition method.
-    // For numeric operators, if the condition value is numeric, the row value must also be numeric.
     private boolean evaluateCondition(String rowValue, String comparator, String conditionValue) {
-        // Remove surrounding single quotes from conditionValue if present.
         if (conditionValue.startsWith("'") && conditionValue.endsWith("'") && conditionValue.length() >= 2) {
             conditionValue = conditionValue.substring(1, conditionValue.length() - 1);
         }
@@ -172,13 +158,12 @@ public class Table {
                     return false;
                 }
             case "LIKE":
-                // Case-insensitive substring match.
+                // (((Case-insensitive))) substring
                 return rowValue.toLowerCase().contains(conditionValue.toLowerCase());
             default:
                 return false;
         }
     }
-
     private void loadTable() {
         try (BufferedReader reader = new BufferedReader(new FileReader(tableFile))) {
             String headerLine = reader.readLine();
@@ -188,11 +173,11 @@ public class Table {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.trim().isEmpty()) {
-                    continue; // Skip blank lines.
+                    continue; // skip blank lines.
                 }
                 String[] tokens = line.split("\t", -1);
                 if (tokens.length == 0 || tokens[0].trim().isEmpty()) {
-                    continue; // Skip lines with an empty id.
+                    continue;
                 }
                 rows.add(new Row(tokens));
             }
@@ -238,13 +223,13 @@ public class Table {
 
     public boolean addColumn(String attributeName) {
         if (attributeName.equalsIgnoreCase("id")) {
-            return false; // Cannot add a column named "id".
+            return false; // cannot add a column named "id".
         }
         if (columns.contains(attributeName)) {
             return false;
         }
         columns.add(attributeName);
-        // For each row, add a default empty string for the new column.
+        // adding a default empty string for the new column, for each row
         for (Row row : rows) {
             row.getValues().add("");
         }
@@ -253,14 +238,13 @@ public class Table {
 
     public boolean dropColumn(String attributeName) {
         if (attributeName.equalsIgnoreCase("id")) {
-            return false; // Cannot drop the primary key column.
+            return false; // the primary key column cant be dropped
         }
         int index = columns.indexOf(attributeName);
         if (index == -1) {
             return false;
         }
         columns.remove(index);
-        // Remove the corresponding value from each row.
         for (Row row : rows) {
             if (index - 1 >= 0 && index - 1 < row.getValues().size()) {
                 row.getValues().remove(index - 1);
@@ -287,18 +271,18 @@ public class Table {
                 rowValue = row.getValues().get(condIndex - 1);
             }
             if (evaluateCondition(rowValue, comparator, conditionValue)) {
-                // For each update, update the corresponding column value.
+               // corresponding column value is updated for each update !!
                 for (Map.Entry<String, String> entry : updates.entrySet()) {
                     String colName = entry.getKey();
                     String newValue = entry.getValue();
                     if (colName.equalsIgnoreCase("id")) {
-                        continue; // Skip updating primary key.
+                        continue; // skip updating primary key.
                     }
                     int colIndex = columns.indexOf(colName);
                     if (colIndex == -1) {
-                        return -1; // Column not found.
+                        return -1;
                     }
-                    // Row values correspond to columns starting from index 1 (since "id" is at columns[0]).
+                    //since "id" is at columns[0] taking row values corresponding to column values from index 1
                     row.getValues().set(colIndex - 1, newValue);
                 }
                 updateCount++;
@@ -308,9 +292,8 @@ public class Table {
         return updateCount;
     }
 
-    // New method: Return a copy of the current rows.
+    // return copy == current rows for joins
     public List<Row> getRows() {
         return new ArrayList<>(rows);
     }
-
 }

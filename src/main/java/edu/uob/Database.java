@@ -21,7 +21,6 @@ public class Database {
     public String getDatabaseName() {
         return databaseName;
     }
-
     private void ensureDatabaseDirectory() {
         try {
             Files.createDirectories(Paths.get(databasePath));
@@ -29,7 +28,6 @@ public class Database {
             System.err.println("Error creating database directory: " + e.getMessage());
         }
     }
-
     private void loadTables() {
         File folder = new File(databasePath);
         File[] files = folder.listFiles((dir, name) -> name.endsWith(".tab"));
